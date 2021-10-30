@@ -36,7 +36,21 @@ The input parameters are:
 
 We also provide a Python script that translates SPARQL queries to the MilleniumDB syntax in [translator_sparql_2_mdb.py](src/py/translator_sparql_2_mdb.py)
 
-### Data loading scripts for MilleniumDB
+### Data loading instructions for MilleniumDB
+
+#### Download and install MillenniumDB
+
+Clone our repository https://github.com/MillenniumDB/MillenniumDB and follow the instructions in the `README.md` to compile the project.
+
+#### Transform the .nt
+
+Use the script [nt_to_mdb.py](src/py/nt_to_mdb.py) to transform the wikidata .nt into our format.
+
+#### Execute the bulk import
+
+The database creation is the same as in the `README.md` instructions, but we strongly recommend to use a big public buffer. In our case we used the parameter `9000000`, (9000000*4096 bytes = ~37GB)
+
+- `build/Release/bin/create_db [path/to/import_file] [path/to/new_database_folder] -b 9000000`
  
 ### Data loading scripts for Jena
 
@@ -176,7 +190,7 @@ Blazegraph can't load big files in a reasonable time, so we need to split the .n
 - `split -l 1000000 -a 4 -d --additional-suffix=.nt [path_to_nt]`
 - `cd ..`
 
-#### Clone repo and build
+#### Clone the Git repository and build
 
 - `git clone --recurse-submodules https://gerrit.wikimedia.org/r/wikidata/query/rdf wikidata-query-rdf`
 - `cd wikidata-query-rdf`
@@ -199,3 +213,49 @@ Blazegraph can't load big files in a reasonable time, so we need to split the .n
 - Start the server: `./runBlazegraph.sh`
   - This process won't end until you interrupt it (Ctrl+C). Let this execute until the import is finished. Run the next command in another terminal.
 - Start the import: `./loadRestAPI.sh -n wdq -d [path_of_splitted_nt_folder]`
+
+### Neo4J import instructions
+
+#### Download Neo4J
+
+- Download Neo4J community edition from their website https://neo4j.com/download-center/#community . We used the version 4.3.5 but this instructions might work for newer versions.
+- Extract the downloaded file
+  - `tar -xf neo4j-community-4.*.*-unix.tar.gz`
+- Enter to the folder:
+  - `cd neo4j-community-4.*.*/`
+- Set the variable `$NEO4J_HOME` pointing to the Neo4J folder (using `export` and adding it to .bashrc/.zshrc)
+
+#### Edit configuration file
+
+Edit the text file `conf/neo4j.conf`
+
+- Set `dbms.default_database=wikidata`
+- Uncomment the line `dbms.security.auth_enabled=false`
+
+#### Convert .nt to .csv files
+
+Use the script [nt_to_neo4j.py](src/py/nt_to_neo4j.py) to generate the .csv files `entities.csv`, `literals.csv` and `edges.csv`
+
+#### Bulk import and index
+
+Execute the data import
+
+```
+bin/neo4j-admin import --database wikidata \
+ --nodes=Entity=wikidata_csv/entities.csv \
+ --nodes wikidata_csv/literals.csv \
+ --relationships wikidata_csv/edges.csv \
+ --delimiter "," --array-delimiter ";" --skip-bad-relationships true
+```
+
+You should have the .csv files in the `wikidata_csv` folder.
+
+Now we have to create the index for entities:
+
+- Start the server: `bin/neo4j console`
+  - This process won't end until you interrupt it (Ctrl+C). Let this execute until the index creation is finished. Run the next command in another terminal.
+
+- Open the cypher console:
+  - `bin/cypher-shell`, and inside the console run the command:
+    - `CREATE INDEX ON :Entity(id);`
+    - Even though the above command returns immediately, you have to wait until is finished before interrupting the server. You can see the status of the index with the command `SHOW INDEXES;`
