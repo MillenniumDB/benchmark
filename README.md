@@ -2,6 +2,19 @@
 
 In this repository you can find the data files and queries to Wikidata used in the evaluation section for the publication [MillenniumDB: A Modular Architecture for Persistent Graph Database Systems](https://ahivx.org). These data and queries are the input for the script files that run the evaluation.
 
+# Table of contents
+
+
+- [Wikidata data](#wikidata-data)
+- [Wikidata Queries](#wikidata-queries)
+- [Scripts](#scripts)
+  - [Data loading instructions for MilleniumDB](#data-loading-instructions-for-milleniumdb)
+  - [Data loading scripts for Jena](#data-loading-scripts-for-jena)
+  - [Virtuoso import instructions](#virtuoso-import-instructions)
+  - [Blazegraph import instructions](#blazegraph-import-instructions)
+  - [Neo4J import instructions](#neo4j-import-instructions)
+  - [Running scripts](#running-scripts)
+
 ## Wikidata data
 
 The data used in this evaluation are the [Wikidata Truthy](https://iccl.inf.tu-dresden.de/web/Wikidata_SPARQL_Logs/en) from 2021-06-23. We cleaned the data removing labels from nodes and those properties that do not belong to the Wikidata's vocabulary (i.e `http://www.wikidata.org/prop/direct/P`). The data is available to download from [Google Drive](https://drive.google.com/u/0/uc\?id\=1oDkrHT68_v7wfzTxjaRg40F7itb7tVEZ).
@@ -19,22 +32,6 @@ From the previous queries we generate our final query set in the different query
 
 Here we provide a description of the scripts and configuration files we used for loading the data into the different engines and the execution scripts for the queries.
 
-### Running scripts
-
-The script [benchmark_bgps.py](src/py/benchmark_bgps.py) runs the evaluation for queries containing only Basic Graph Patterns. 
-The input parameters are:
- * The query engine that will run the queries
- * A single file containing all queries, one in each line
- * The result set size limit
- * The prefixes used in the evaluation
-
-The script [benchmark_property_paths.py](src/py/benchmark_property_paths.py) runs the evaluation for queries containing SPARQL property paths. 
-The input parameters are:
- * The query engine that will run the queries
- * A single file containing all queries, one in each line
- * The result set size limit
-
-We also provide a Python script that translates SPARQL queries to the MilleniumDB syntax in [translator_sparql_2_mdb.py](src/py/translator_sparql_2_mdb.py)
 
 ### Data loading instructions for MilleniumDB
 
@@ -259,3 +256,20 @@ Now we have to create the index for entities:
   - `bin/cypher-shell`, and inside the console run the command:
     - `CREATE INDEX ON :Entity(id);`
     - Even though the above command returns immediately, you have to wait until is finished before interrupting the server. You can see the status of the index with the command `SHOW INDEXES;`
+
+### Running scripts
+
+The script [benchmark_bgps.py](src/py/benchmark_bgps.py) runs the evaluation for queries containing only Basic Graph Patterns. 
+The input parameters are:
+ * The query engine that will run the queries
+ * A single file containing all queries, one in each line
+ * The result set size limit
+ * The prefixes used in the evaluation
+
+The script [benchmark_property_paths.py](src/py/benchmark_property_paths.py) runs the evaluation for queries containing SPARQL property paths. 
+The input parameters are:
+ * The query engine that will run the queries
+ * A single file containing all queries, one in each line
+ * The result set size limit
+
+We also provide a Python script that translates SPARQL queries to the MilleniumDB syntax in [translator_sparql_2_mdb.py](src/py/translator_sparql_2_mdb.py)
