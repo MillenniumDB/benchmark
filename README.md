@@ -4,7 +4,7 @@ In this repository you can find the data files and queries to Wikidata used in t
 
 ## Wikidata data
 
-The data used in this evaluation are the [Wikidata Truthy](https://iccl.inf.tu-dresden.de/web/Wikidata_SPARQL_Logs/en) from 2021-06-23. We cleaned the data removing labels from nodes and those properties that do not belong to the Wikidata's vocabulary (i.e `http://www.wikidata.org/prop/direct/P`). The data is available to download from [Figshare](https://figshare).
+The data used in this evaluation are the [Wikidata Truthy](https://iccl.inf.tu-dresden.de/web/Wikidata_SPARQL_Logs/en) from 2021-06-23. We cleaned the data removing labels from nodes and those properties that do not belong to the Wikidata's vocabulary (i.e `http://www.wikidata.org/prop/direct/P`). The data is available to download from [Google Drive](https://drive.google.com/u/0/uc\?id\=1oDkrHT68_v7wfzTxjaRg40F7itb7tVEZ).
 
 The scripts to generate these data from the [original data](https://www.wikidata.org/wiki/Wikidata:Database_download) are in our [source folder](src/py/filter_direct_properties.py) folder.
 
