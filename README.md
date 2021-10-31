@@ -2,8 +2,7 @@
 
 In this repository you can find the data files and queries to Wikidata used in the evaluation section for the publication [MillenniumDB: A Modular Architecture for Persistent Graph Database Systems](https://ahivx.org). These data and queries are the input for the script files that run the evaluation.
 
-# Table of contents
-
+## Table of contents
 
 - [Wikidata data](#wikidata-data)
 - [Wikidata Queries](#wikidata-queries)
@@ -37,30 +36,30 @@ Here we provide a description of the scripts and configuration files we used for
 
 #### Download and install MillenniumDB
 
-Clone our repository https://github.com/MillenniumDB/MillenniumDB and follow the instructions in the `README.md` to compile the project.
+Clone our [Git repository](https://github.com/MillenniumDB/MillenniumDB) and follow the instructions in the `README.md` to compile the project.
 
 #### Transform the .nt
 
-Use the script [nt_to_mdb.py](src/py/nt_to_mdb.py) to transform the wikidata .nt into our format.
+Use the script [nt_to_mdb.py](src/py/nt_to_mdb.py) to transform the Wikidata .nt file into the MilleniumDB format.
 
 #### Execute the bulk import
 
-The database creation is the same as in the `README.md` instructions, but we strongly recommend to use a big public buffer. In our case we used the parameter `9000000`, (9000000*4096 bytes = ~37GB)
+The database creation is the same as in the `README.md` instructions, but we strongly recommend to use a big  buffer. In our case we used the parameter `9000000`, (9000000*4096 bytes = ~37GB)
 
 - `build/Release/bin/create_db [path/to/import_file] [path/to/new_database_folder] -b 9000000`
  
-### Data loading scripts for Jena
+### Data loading scripts for Apache Jena
 
 #### Prerequisites 
 
-The only prerequisite is Java JDK (we used openjdk 11, other versions might work as well)
+Apache Jena requires Java JDK (we used Openjdk 11, other versions might work as well)
 
-The installation may be different depending on your linux distribution. For Debian/Ubuntu based distributions:
+The installation may be different depending on your Linux distribution. For Debian/Ubuntu based distributions:
 
 - `sudo apt update`
 - `sudo apt install openjdk-11-jdk`
 
-#### Download apache jena
+#### Download Apache Jena
 
 You can download Apache Jena from their [website](https://jena.apache.org/download/) . The file you need to download will look like `apache-jena-4.X.Y.tar.gz`, in our case, we used the version `4.1.0`, but this should also work for newer versions.
 
@@ -75,7 +74,7 @@ You can download Apache Jena from their [website](https://jena.apache.org/downlo
 
 #### Import for leapfrog version
 
-This step is necessary only if you want to use the leapfrog jena implementation, you can skip this otherwise.
+This step is necessary only if you want to use the Leapfrog Jena implementation, you can skip this otherwise.
 
 Edit the text file `bin/tdbloader2index` and search for the lines:
 
@@ -103,7 +102,7 @@ Now you can execute the bulk import in the same way we did it before:
 
 ### Virtuoso import instructions
 
-#### 1. Edit the .nt
+#### Edit the .nt
 
 Virtuoso has a problem with geo-datatypes so we generated a new .nt file to prevent them from being parsed as a geo-datatype.
 
@@ -111,8 +110,7 @@ Virtuoso has a problem with geo-datatypes so we generated a new .nt file to prev
 
 #### Download Virtuoso
 
-You can download Virtuoso from their github:
-https://github.com/openlink/virtuoso-opensource/releases.
+You can download Virtuoso from their [Github](https://github.com/openlink/virtuoso-opensource/releases)
 We used Virtuoso Open Source Edition, version 7.2.6.
 
 - Download: `wget https://github.com/openlink/virtuoso-opensource/releases/download/v7.2.6.1/virtuoso-opensource.x86_64-generic_glibc25-linux-gnu.tar.gz`
@@ -154,11 +152,11 @@ We used Virtuoso Open Source Edition, version 7.2.6.
 
 - Start the server: `bin/virtuoso-t -c wikidata.ini +foreground`
 
-  - This process won't end until you interrupt it (Ctrl+C). Let this execute until the import is finished. Run the next command in another terminal.
+  - This process won't end until you interrupt it (Ctrl+C). Let this execute until the import ends. Run the next command in another terminal.
 
 - `bin/isql localhost:1111`
 
-  And inside the isql console run:
+  And inside the `isql` console run:
 
   - `ld_dir('[path_to_virtuoso_folder]', '[virtuoso_nt_file]', 'http://wikidata.org/);`
   - `rdf_loader_run();`
@@ -173,7 +171,7 @@ You'll need the following prerequisites installed:
 - Maven
 - Git
 
-The installation may be different depending on your linux distribution. For Debian/Ubuntu based distributions:
+The installation may be different depending on your Linux distribution. For Debian/Ubuntu based distributions:
 
 - `sudo apt update`
 - `sudo apt install openjdk-11-jdk mvn git`
@@ -200,7 +198,7 @@ Blazegraph can't load big files in a reasonable time, so we need to split the .n
 #### Edit the default script
 
 - Edit the script file `runBlazegraph.sh` with any text editor.
-  - configure main memory here: `HEAP_SIZE=${HEAP_SIZE:-"64g"}` (You may use other value dependeing on how much RAM your machine has)
+  - configure main memory here: `HEAP_SIZE=${HEAP_SIZE:-"64g"}` (You may use other value depending on how much RAM your machine has)
   - set the log folder `LOG_DIR=${LOG_DIR:-"/path/to/logs"}`, replace `/path/to/logs` with the absolute path of the `logs` dir you created in the previous step.
   - add `-Dorg.wikidata.query.rdf.tool.rdf.RdfRepository.timeout=600` to the `exec java` command to specify the timeout (value is in seconds).
   - also change `-Dcom.bigdata.rdf.sparql.ast.QueryHints.analyticMaxMemoryPerQuery=0` which removes per-query memory limits.
@@ -208,7 +206,7 @@ Blazegraph can't load big files in a reasonable time, so we need to split the .n
 #### Load the splitted data
 
 - Start the server: `./runBlazegraph.sh`
-  - This process won't end until you interrupt it (Ctrl+C). Let this execute until the import is finished. Run the next command in another terminal.
+  - This process won't end until you interrupt it (Ctrl+C). Let this execute until the import ends. Run the next command in another terminal.
 - Start the import: `./loadRestAPI.sh -n wdq -d [path_of_splitted_nt_folder]`
 
 ### Neo4J import instructions
@@ -245,7 +243,7 @@ bin/neo4j-admin import --database wikidata \
  --delimiter "," --array-delimiter ";" --skip-bad-relationships true
 ```
 
-You should have the .csv files in the `wikidata_csv` folder.
+You should have the `.csv` files in the `wikidata_csv` folder.
 
 Now we have to create the index for entities:
 
