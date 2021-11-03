@@ -89,6 +89,14 @@ Now you can execute the bulk import in the same way we did it before:
 
 - `bin/tdbloader2 --loc=[path_of_new_db_folder] [path_of_nt_file]`
 
+In order to be able to run the benchmark for Leapfrog Jena you also need to use a custom fuseki-server.jar
+- Install openjdk-8, mvn and set `JAVA_HOME` to use java 8
+- `git clone https://github.com/cirojas/jena-leapfrog`
+- `cd jena-leapfrog`
+- `mvn clean install -Drat.numUnapprovedLicenses=100 -Darguments="-Dmaven.javadoc.skip=true" -DskipTests`
+- Use `jena-fuseki2/apache-jena-fuseki/target/apache-jena-fuseki-3.9.0.tar.gz` instead of the one you download normally.
+
+
 ## Data loading for Virtuoso
 
 ### 1. Edit the .nt
@@ -271,21 +279,35 @@ Finally, we distinguish BGPs queries consisting of a single triple pattern (Sing
 
 ## Running the benchmark
 
-Here we provide a description of the scripts and configuration files we used for loading the data into the different engines and the execution scripts for the queries.
+Here we provide a description of the scripts we used for the execution of the queries.
 
-### Running scripts
+Our scripts will execute a list of queries for a certain engine, one at a time, and register the time and number of results for each query in a csv file.
 
-Each time you run a benchmark script remember to clear the cache of the system before, run as root:
+Every time you want to run a benchmark script you must clear the cache of the system before. To do this, run as root:
 - `sync; echo 3 > /proc/sys/vm/drop_caches`
 
-The script [benchmark_bgps.py](/src/benchmarking/benchmark_bgps.py) runs the evaluation for our BGPs queries and the script [benchmark_property_paths.py](/src/benchmarking/benchmark_property_paths.py) runs the evaluation for queries containing SPARQL property paths.
-In both scripts the input parameters are:
- * The query engine that will run the queries
+Each script has a **parameters section** near the beginning of the file, (e.g. database paths, output folder) make sure to edit the script to set them properly.
+
+The script [benchmark_bgps.py](/src/benchmarking/benchmark_bgps.py) and [benchmark_property_paths.py](/src/benchmarking/benchmark_property_paths.py) runs the evaluation for BGPs/ property paths respectively. The same scripts works for SPARQL engines and MillenniumDB (they convert SPARQL into our query language).
+These scripts will automatically start and stop the servers.
+In both cases the input parameters are:
+ * The engine that will execute the queries (`MILLENNIUM`, `JENA`, `JENALF`, `BLAZEGRAPH` or `VIRTUOSO`)
  * A single file containing all queries, one in each line
  * The result set size limit
 
-For Neo4J you need to use other scripts: [neo4j_benchmark_bgps.py](/src/benchmarking/neo4j_benchmark_bgps.py) and [neo4j_benchmark_property_paths.py](/src/benchmarking/neo4j_benchmark_property_paths.py). Also you need to manually start and stop the neo4j service.
+
+Example execution:
+- `python src/benchmarking/benchmark_bgps.py MILLENNIUM queries/sparql_synthetic_bgps.txt 100000`
+- `python src/benchmarking/benchmark_property_paths.py MILLENNIUM queries/sparql_property_paths.txt 100000`
+
+For Neo4J you need to use other scripts: [neo4j_benchmark_bgps.py](/src/benchmarking/neo4j_benchmark_bgps.py) and [neo4j_benchmark_property_paths.py](/src/benchmarking/neo4j_benchmark_property_paths.py). Unlike the previous scripts, you need to manually start and stop the neo4j server.
 In both scripts the input parameters are:
  * A single file containing all queries, one in each line. For bgps the expected input is in SPARQL, but for property paths the expected input is in Cypher.
  * The result set size limit
+
+ Example execution:
+- `python src/benchmarking/neo4j_benchmark_bgps.py queries/sparql_synthetic_bgps.txt 100000`
+- `python src/benchmarking/neo4j_benchmark_property_paths.py queries/cypher_property_paths.txt 100000`
+
+
 
