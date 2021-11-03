@@ -1,6 +1,6 @@
 # Wikidata Benchmark
 
-In this repository you can find the data files and queries to Wikidata used in the evaluation section for the publication [MillenniumDB: A Modular Architecture for Persistent Graph Database Systems](https://ahivx.org). These data and queries are the input for the script files that run the evaluation.
+In this repository you can find the data files and queries to Wikidata used in the evaluation section for the publication [MillenniumDB: A Modular Architecture for Persistent Graph Database Systems](https://arxiv.org/pdf/2111.01540.pdf). These data and queries are the input for the script files that run the evaluation.
 
 ## Table of contents
 
