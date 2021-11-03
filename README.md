@@ -1,56 +1,45 @@
 # Wikidata Benchmark
 
-In this repository you can find the data files and queries to Wikidata used in the evaluation section for the publication [MillenniumDB: A Modular Architecture for Persistent Graph Database Systems](https://arxiv.org/pdf/2111.01540.pdf). These data and queries are the input for the script files that run the evaluation.
+In this repository you can find the data files and queries used in the benchmarking section for the publication [MillenniumDB: A Persistent, Open-Source, Graph Database](https://arxiv.org/pdf/2111.01540.pdf).
 
 ## Table of contents
 
 - [Wikidata data](#wikidata-data)
-- [Wikidata Queries](#wikidata-queries)
-- [Scripts](#scripts)
-  - [Data loading instructions for MilleniumDB](#data-loading-instructions-for-milleniumdb)
-  - [Data loading scripts for Jena](#data-loading-scripts-for-jena)
-  - [Virtuoso import instructions](#virtuoso-import-instructions)
-  - [Blazegraph import instructions](#blazegraph-import-instructions)
-  - [Neo4J import instructions](#neo4j-import-instructions)
-  - [Running scripts](#running-scripts)
+- [Data Loading](#data-loading)
+  - [MilleniumDB](#data-loading-for-milleniumdb)
+  - [Apache Jena](#data-loading-for-apache-jena)
+  - [Virtuoso](#data-loading-for-virtuoso)
+  - [Blazegraph](#data-loading-for-blazegraph)
+  - [Neo4J](#data-loading-for-neo4j)
+- [Wikidata queries](#wikidata-queries)
+- [Running the benchmark](#running-the-benchmark)
 
-## Wikidata data
+# Wikidata data
 
-The data used in this evaluation are the [Wikidata Truthy](https://iccl.inf.tu-dresden.de/web/Wikidata_SPARQL_Logs/en) from 2021-06-23. We cleaned the data removing labels from nodes and those properties that do not belong to the Wikidata's vocabulary (i.e `http://www.wikidata.org/prop/direct/P`). The data is available to download from [Google Drive](https://drive.google.com/u/0/uc\?id\=1oDkrHT68_v7wfzTxjaRg40F7itb7tVEZ).
+The data used in this benchmark is based on the [Wikidata Truthy](https://iccl.inf.tu-dresden.de/web/Wikidata_SPARQL_Logs/en) from 2021-06-23. We cleaned the data removing all triples whose predicate is not a direct property (i.e `http://www.wikidata.org/prop/direct/P*`). The data is available to download from [Google Drive](https://drive.google.com/u/0/uc\?id\=1oDkrHT68_v7wfzTxjaRg40F7itb7tVEZ).
 
-The scripts to generate these data from the [original data](https://www.wikidata.org/wiki/Wikidata:Database_download) are in our [source folder](http://github.com/millenniumDB/benchmark/tree/master/src/py/filter_direct_properties.py) folder.
+The script to generate these data from the [original data](https://www.wikidata.org/wiki/Wikidata:Database_download) is in our [source folder](/src/database_generation/filter_direct_properties.py).
 
-## Wikidata Queries
+# Data loading
+## Data loading for MilleniumDB
 
-We obtained thee queries we used in our benchmark from the [Wikidata query log files](https://iccl.inf.tu-dresden.de/web/Wikidata_SPARQL_Logs/en). We also filtered those so all queries have at least one result and have a fixed starting or ending node. That is, there is a graph node before a path expression and at the end of that expression. We used the Java classes in our [src folder](http://github.com/millenniumDB/benchmark/tree/master/src/src) and stored the resulting queries in our [data folder](http://github.com/millenniumDB/benchmark/tree/master/data/bgps).
+### 1. Download and install MillenniumDB
 
-From the previous queries we generate our final query set in the different query languages (SPARQL, Cypher and MilleniumDB Query Language) using the Python script [translator_sparql_2_mdb.py](http://github.com/millenniumDB/benchmark/tree/master/src/py/translator_sparql_2_mdb.py).
+Clone the [MillenniumDB git repository](https://github.com/MillenniumDB/MillenniumDB) and follow the instructions in the `README.md` to compile the project.
 
+### 2. Transform the .nt
 
-## Scripts
+Use [this script](/src/database_generation/nt_to_mdb.py) to transform the Wikidata .nt file into the MilleniumDB format.
 
-Here we provide a description of the scripts and configuration files we used for loading the data into the different engines and the execution scripts for the queries.
-
-
-### Data loading instructions for MilleniumDB
-
-#### Download and install MillenniumDB
-
-Clone our [Git repository](https://github.com/MillenniumDB/MillenniumDB) and follow the instructions in the `README.md` to compile the project.
-
-#### Transform the .nt
-
-Use the script [nt_to_mdb.py](http://github.com/millenniumDB/benchmark/tree/master/src/py/nt_to_mdb.py) to transform the Wikidata .nt file into the MilleniumDB format.
-
-#### Execute the bulk import
+### 3. Execute the bulk import
 
 The database creation is the same as in the `README.md` instructions, but we strongly recommend to use a big  buffer. In our case we used the parameter `9000000`, (9000000*4096 bytes = ~37GB)
 
 - `build/Release/bin/create_db [path/to/import_file] [path/to/new_database_folder] -b 9000000`
- 
-### Data loading scripts for Apache Jena
 
-#### Prerequisites 
+## Data loading for Apache Jena
+
+### 1. Prerequisites
 
 Apache Jena requires Java JDK (we used Openjdk 11, other versions might work as well)
 
@@ -59,20 +48,20 @@ The installation may be different depending on your Linux distribution. For Debi
 - `sudo apt update`
 - `sudo apt install openjdk-11-jdk`
 
-#### Download Apache Jena
+### 2. Download Apache Jena
 
 You can download Apache Jena from their [website](https://jena.apache.org/download/) . The file you need to download will look like `apache-jena-4.X.Y.tar.gz`, in our case, we used the version `4.1.0`, but this should also work for newer versions.
 
-#### Extract and change into the project folder
+### 3. Extract and change into the project folder
 
 - `tar -xf apache-jena-4.*.*.tar.gz`
 - `cd apache-jena-4.*.*/`
 
-#### Execute the bulk import
+### 4. Execute the bulk import
 
 - `bin/tdbloader2 --loc=[path_of_new_db_folder] [path_of_nt_file]`
 
-#### Import for leapfrog version
+### 5. Import for leapfrog version
 
 This step is necessary only if you want to use the Leapfrog Jena implementation, you can skip this otherwise.
 
@@ -100,30 +89,33 @@ Now you can execute the bulk import in the same way we did it before:
 
 - `bin/tdbloader2 --loc=[path_of_new_db_folder] [path_of_nt_file]`
 
-### Virtuoso import instructions
+## Data loading for Virtuoso
 
-#### Edit the .nt
+### 1. Edit the .nt
 
 Virtuoso has a problem with geo-datatypes so we generated a new .nt file to prevent them from being parsed as a geo-datatype.
 
 - `sed 's/#wktLiteral/#wktliteral/g' [path_of_nt_file] > [virtuoso_nt_file]`
 
-#### Download Virtuoso
+### 2. Download Virtuoso
 
-You can download Virtuoso from their [Github](https://github.com/openlink/virtuoso-opensource/releases)
+You can download Virtuoso from [their github](https://github.com/openlink/virtuoso-opensource/releases).
 We used Virtuoso Open Source Edition, version 7.2.6.
 
-- Download: `wget https://github.com/openlink/virtuoso-opensource/releases/download/v7.2.6.1/virtuoso-opensource.x86_64-generic_glibc25-linux-gnu.tar.gz`
-- Extract: `tar -xf virtuoso-opensource.x86_64-generic_glibc25-linux-gnu.tar.gz`
-- Enter to the folder: `cd virtuoso-opensource`
+- Download:
+  - `wget https://github.com/openlink/virtuoso-opensource/releases/download/v7.2.6.1/virtuoso-opensource.x86_64-generic_glibc25-linux-gnu.tar.gz`
+- Extract:
+  - `tar -xf virtuoso-opensource.x86_64-generic_glibc25-linux-gnu.tar.gz`
+- Enter to the folder:
+  - `cd virtuoso-opensource`
 
-#### Create configuration file
+### 3. Create configuration file
 
 - We start from their example configuration file:
 
   - `cp database/virtuoso.ini.sample wikidata.ini`
 
-- Edit `wikidata.ini` with any text editor, when you edit a path, we recomend using the absolute path:
+- Edit `wikidata.ini` with a text editor, when you edit a path, we recomend using the absolute path:
 
   - replace every `../database/` with the path of the database folder you want to create.
 
@@ -141,14 +133,14 @@ We used Virtuoso Open Source Edition, version 7.2.6.
 
   - revise `MaxQueryExecutionTime`, our experiments used `600` for 10 minute timeouts
 
-  - add at the end of the file:
+  - add at the end of the file these lines:
 
     ```
     [Flags]
     tn_max_memory = 2755359740
     ```
 
-#### Load the data
+### 4. Load the data
 
 - Start the server: `bin/virtuoso-t -c wikidata.ini +foreground`
 
@@ -161,9 +153,9 @@ We used Virtuoso Open Source Edition, version 7.2.6.
   - `ld_dir('[path_to_virtuoso_folder]', '[virtuoso_nt_file]', 'http://wikidata.org/);`
   - `rdf_loader_run();`
 
-### Blazegraph import instructions
+## Data loading for Blazegraph
 
-#### Prerequisites
+### 1. Prerequisites
 
 You'll need the following prerequisites installed:
 
@@ -176,7 +168,7 @@ The installation may be different depending on your Linux distribution. For Debi
 - `sudo apt update`
 - `sudo apt install openjdk-11-jdk mvn git`
 
-#### Split .nt file into smaller files
+### 2. Split .nt file into smaller files
 
 Blazegraph can't load big files in a reasonable time, so we need to split the .nt into smaller files (1M each)
 
@@ -185,7 +177,7 @@ Blazegraph can't load big files in a reasonable time, so we need to split the .n
 - `split -l 1000000 -a 4 -d --additional-suffix=.nt [path_to_nt]`
 - `cd ..`
 
-#### Clone the Git repository and build
+### 3. Clone the Git repository and build
 
 - `git clone --recurse-submodules https://gerrit.wikimedia.org/r/wikidata/query/rdf wikidata-query-rdf`
 - `cd wikidata-query-rdf`
@@ -195,7 +187,7 @@ Blazegraph can't load big files in a reasonable time, so we need to split the .n
 - `cd service-*/`
 - `mkdir logs`
 
-#### Edit the default script
+### 4. Edit the default script
 
 - Edit the script file `runBlazegraph.sh` with any text editor.
   - configure main memory here: `HEAP_SIZE=${HEAP_SIZE:-"64g"}` (You may use other value depending on how much RAM your machine has)
@@ -203,15 +195,15 @@ Blazegraph can't load big files in a reasonable time, so we need to split the .n
   - add `-Dorg.wikidata.query.rdf.tool.rdf.RdfRepository.timeout=600` to the `exec java` command to specify the timeout (value is in seconds).
   - also change `-Dcom.bigdata.rdf.sparql.ast.QueryHints.analyticMaxMemoryPerQuery=0` which removes per-query memory limits.
 
-#### Load the splitted data
+### 5. Load the splitted data
 
 - Start the server: `./runBlazegraph.sh`
   - This process won't end until you interrupt it (Ctrl+C). Let this execute until the import ends. Run the next command in another terminal.
 - Start the import: `./loadRestAPI.sh -n wdq -d [path_of_splitted_nt_folder]`
 
-### Neo4J import instructions
+## Data loading for Neo4J
 
-#### Download Neo4J
+### 1. Download Neo4J
 
 - Download Neo4J community edition from their website https://neo4j.com/download-center/#community . We used the version 4.3.5 but this instructions might work for newer versions.
 - Extract the downloaded file
@@ -220,18 +212,19 @@ Blazegraph can't load big files in a reasonable time, so we need to split the .n
   - `cd neo4j-community-4.*.*/`
 - Set the variable `$NEO4J_HOME` pointing to the Neo4J folder (using `export` and adding it to .bashrc/.zshrc)
 
-#### Edit configuration file
+### 2. Edit configuration file
 
 Edit the text file `conf/neo4j.conf`
 
 - Set `dbms.default_database=wikidata`
 - Uncomment the line `dbms.security.auth_enabled=false`
+- Add the line `dbms.transaction.timeout=10m`
 
-#### Convert .nt to .csv files
+### 3. Convert .nt to .csv files
 
-Use the script [nt_to_neo4j.py](http://github.com/millenniumDB/benchmark/tree/master/src/py/nt_to_neo4j.py) to generate the .csv files `entities.csv`, `literals.csv` and `edges.csv`
+Use the script [nt_to_neo4j.py](/src/database_generation/nt_to_neo4j.py) to generate the .csv files `entities.csv`, `literals.csv` and `edges.csv`
 
-#### Bulk import and index
+### 4. Bulk import and index
 
 Execute the data import
 
@@ -255,19 +248,44 @@ Now we have to create the index for entities:
     - `CREATE INDEX ON :Entity(id);`
     - Even though the above command returns immediately, you have to wait until is finished before interrupting the server. You can see the status of the index with the command `SHOW INDEXES;`
 
+# Wikidata Queries
+
+In this benchmark we have 4 sets of queries:
+- Basic Graph Patterns (BGPs):
+  - Single BGPs : 399 queries
+  - Multiple BGPs: 436 queries
+  - Synthetic BGPs: 850 queries
+- Property Paths : 1683 queries
+
+We provide the SPARQL queries in our [queries folder](/queries). Also we provide the equivalent cypher property paths (it has fewer queries because some property paths cannot be expressed in cypher).
+
+**Single BGPs**, **Multiple BGPs** and **Property Paths** are based on real queries extracted from the [Wikidata SPARQL query log](https://iccl.inf.tu-dresden.de/web/Wikidata_SPARQL_Logs/en). This log contains
+millions of queries, but many of them are trivial to evaluate.
+We thus decided to generate our benchmark from more challenging
+cases, i.e., a smaller log of queries that timed-out on the [Wikidata
+public endpoint](https://query.wikidata.org/). From these queries we extracted their BGPs and property paths removing duplicates (modulo isomorphism on query variables).
+Then we filtered with the same criteria that we applied to the data, removing all queries having predicates that are not a direct property (`http://www.wikidata.org/prop/direct/P*`). Next, for property paths we removed queries that have both subject and object as variables and for BGPs we removed queries having a triple in which subject, predicate and object are variables.
+Finally, we distinguish BGPs queries consisting of a single triple pattern (Single BGPs) from those containing more than one triple pattern (Multiple BGPs).
+
+**Synthetic BGPs** are queries based in a benchmark proposed in a [previous work](https://aidanhogan.com/docs/SPARQL_worst_case_optimal.pdf). We had to generate new queries because datasets are different. We used [their jars](https://github.com/cirojas/leapfrog-benchmark/tree/gh-pages/find-queries), and the corresponding [properties.txt](/data/properties.txt) that has all the properties of our dataset.
+
+## Running the benchmark
+
+Here we provide a description of the scripts and configuration files we used for loading the data into the different engines and the execution scripts for the queries.
+
 ### Running scripts
 
-The script [benchmark_bgps.py](http://github.com/millenniumDB/benchmark/tree/master/src/py/benchmark_bgps.py) runs the evaluation for queries containing only Basic Graph Patterns. 
-The input parameters are:
- * The query engine that will run the queries
- * A single file containing all queries, one in each line
- * The result set size limit
- * The prefixes used in the evaluation
+Each time you run a benchmark script remember to clear the cache of the system before, run as root:
+- `sync; echo 3 > /proc/sys/vm/drop_caches`
 
-The script [benchmark_property_paths.py](http://github.com/millenniumDB/benchmark/tree/master/src/py/benchmark_property_paths.py) runs the evaluation for queries containing SPARQL property paths. 
-The input parameters are:
+The script [benchmark_bgps.py](/src/benchmarking/benchmark_bgps.py) runs the evaluation for our BGPs queries and the script [benchmark_property_paths.py](/src/benchmarking/benchmark_property_paths.py) runs the evaluation for queries containing SPARQL property paths.
+In both scripts the input parameters are:
  * The query engine that will run the queries
  * A single file containing all queries, one in each line
  * The result set size limit
 
-We also provide a Python script that translates SPARQL queries to the MilleniumDB syntax in [translator_sparql_2_mdb.py](http://github.com/millenniumDB/benchmark/tree/master/src/py/translator_sparql_2_mdb.py)
+For Neo4J you need to use other scripts: [neo4j_benchmark_bgps.py](/src/benchmarking/neo4j_benchmark_bgps.py) and [neo4j_benchmark_property_paths.py](/src/benchmarking/neo4j_benchmark_property_paths.py). Also you need to manually start and stop the neo4j service.
+In both scripts the input parameters are:
+ * A single file containing all queries, one in each line. For bgps the expected input is in SPARQL, but for property paths the expected input is in Cypher.
+ * The result set size limit
+

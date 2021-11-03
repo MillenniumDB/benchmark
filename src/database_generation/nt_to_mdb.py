@@ -19,8 +19,6 @@ o3_exp = re.compile(r'^"((?:[^"\\]|\\.)*)"\^\^<http://www\.w3\.org/2001/XMLSchem
 
 # string with idiom
 o4_exp = re.compile(r'^"((?:[^"\\]|\\.)*)"@(.+)$')
-# wd:Q1 wdt:P2 "asd"@en
-# Q1->"asd" :P2 language:"en"
 
 # other url
 o5_exp = re.compile(r"^<(.+)>$")

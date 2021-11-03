@@ -8,63 +8,57 @@ import re
 import sys
 
 # Usage:
-# python benchmark.py <ENGINE> <QUERIES_FILE_ABSOLUTE_PATH> <LIMIT> <PREFIX_NAME>
+# python benchmark_property_paths.py <ENGINE> <QUERIES_FILE_ABSOLUTE_PATH> <LIMIT>
 # LIMIT = 0 will not add a limit
 
 # Db engine that will execute queries
 ENGINE       = sys.argv[1]
 QUERIES_FILE = sys.argv[2]
 LIMIT        = sys.argv[3]
-PREFIX_NAME  = sys.argv[4]
 
-# ========================== Global vars ===================================
-TIMEOUT = 600 # Max time per query in seconds
-
-BENCHMARK_ROOT = '/data2/benchmark'
+############################ EDIT THIS PARAMETERS #############################
+TIMEOUT = 60 # Max time per query in seconds
 
 # MILLENNIUM DB options
-MDB_QUERY_FILE = f'{BENCHMARK_ROOT}/mdb_query_file'  # temp file to write the query
-MDB_WIKIDATA_PATH = f'{BENCHMARK_ROOT}/MillenniumDB/tests/dbs/wikidata'
+MDB_QUERY_FILE = '/data2/benchmark/mdb_query_file'  # File to write the query
+MDB_WIKIDATA_PATH = '/data2/benchmark/MillenniumDB/tests/dbs/wikidata'
 MDB_BUFFER_SIZE = 8388608 # Buffer used by MillenniumDB 8388608 == 32GB
                           # using 32GB instead of 64GB because
                           # this is only for the buffer manager and MillenniumDB
                           # needs more RAM for other things (e.g. ObjectFile)
 
 # Prefer use absolute paths to avoid problems with current directory
-ENGINES_PATHS = {'MILLENNIUM': f'{BENCHMARK_ROOT}/MillenniumDB',
-                 'JENA':       f'{BENCHMARK_ROOT}/jena',
-                 'JENALF':     f'{BENCHMARK_ROOT}/jena',
-                 'BLAZEGRAPH': f'{BENCHMARK_ROOT}/blazegraph/service',
-                 'VIRTUOSO':   f'{BENCHMARK_ROOT}/virtuoso'}
+ENGINES_PATHS = {'MILLENNIUM': '/data2/benchmark/MillenniumDB',
+                 'JENA': '/data2/benchmark/jena',
+                 'BLAZEGRAPH': '/data2/benchmark/blazegraph/service',
+                 'VIRTUOSO': '/data2/benchmark/virtuoso'}
 
 ENGINES_PORTS = {'MILLENNIUM': 8080,
-                 'JENA':       3030,
-                 'JENALF':     3030,
-                 'VIRTUOSO':   1111,
+                 'JENA': 3030,
+                 'VIRTUOSO': 1111,
                  'BLAZEGRAPH': 9999}
 
 ENDPOINTS = {'BLAZEGRAPH': 'http://localhost:9999/bigdata/namespace/wdq/sparql',
              'JENA':       'http://localhost:3030/jena/sparql',
-             'JENALF':     'http://localhost:3030/jena/sparql',
              'VIRTUOSO':   'http://localhost:8890/sparql'}
 
 SERVER_CMD = {
     'MILLENNIUM': ['./build/Release/bin/server', MDB_WIKIDATA_PATH, '-b', str(MDB_BUFFER_SIZE), '--timeout', str(TIMEOUT)],
     'BLAZEGRAPH': ['./runBlazegraph.sh'],
     'JENA': f'java -Xmx64g -jar apache-jena-fuseki-4.1.0/fuseki-server.jar --loc=apache-jena-4.1.0/wikidata --timeout={TIMEOUT*1000} /jena'.split(' '),
-    'JENALF': f'java -Xmx64g -jar fuseki-leapfrog.jar --loc=apache-jena-4.1.0/wikidata-lf --timeout={TIMEOUT*1000} /jena'.split(' '),
     'VIRTUOSO': ['bin/virtuoso-t', '-c', 'wikidata.ini', '+foreground']}
 
 PORT = ENGINES_PORTS[ENGINE]
 
 # Path to needed output and input files
-MDB_RESULTS_FILE = f'{BENCHMARK_ROOT}/temp.txt'
-RESUME_FILE      = f'{BENCHMARK_ROOT}/results/bgps_{PREFIX_NAME}_{ENGINE}_limit_{LIMIT}.csv'
-ERROR_FILE       = f'{BENCHMARK_ROOT}/results/errors/bgps_{PREFIX_NAME}_{ENGINE}_limit_{LIMIT}.log'
+MDB_RESULTS_FILE = '/data2/benchmark/temp.txt'
+RESUME_FILE      = f'/data2/benchmark/results/property_paths_{ENGINE}_limit_{LIMIT}.csv'
+ERROR_FILE       = f'/data2/benchmark/results/errors/property_paths_{ENGINE}_limit_{LIMIT}.log'
 
-SERVER_LOG_FILE  = f'{BENCHMARK_ROOT}/scripts/log/bgps_{PREFIX_NAME}_{ENGINE}_limit_{LIMIT}.log'
+SERVER_LOG_FILE = f'/data2/benchmark/scripts/log/property_paths_{ENGINE}_limit_{LIMIT}.log'
 
-VIRTUOSO_LOCK_FILE = f'{BENCHMARK_ROOT}/virtuoso/wikidata/virtuoso.lck'
+VIRTUOSO_LOCK_FILE = '/data2/benchmark/virtuoso/wikidata/virtuoso.lck'
+###############################################################################
 
 server_log = open(SERVER_LOG_FILE, 'w')
 server_process = None
@@ -89,92 +83,42 @@ def lsofany():
 # ================== Parsers =================================
 def parse_to_sparql(query):
     if not LIMIT:
-        return f'SELECT DISTINCT * WHERE {{ {query} }}'
-    return f'SELECT DISTINCT * WHERE {{ {query} }} LIMIT {LIMIT}'
-
-
-def IRI_to_mdb(iri):
-    expressions = []
-
-    # property
-    expressions.append(re.compile(r"^<http://www\.wikidata\.org/prop/direct/([QqPp]\d+)>$"))
-
-    # entity
-    expressions.append(re.compile(r"^<http://www\.wikidata\.org/entity/([QqPp]\d+)>$"))
-
-    # string
-    expressions.append(re.compile(r'^("(?:[^"\\]|\\.)*")$'))
-
-    # something with schema
-    expressions.append(re.compile(r'^("(?:[^"\\]|\\.)*")\^\^<http://www\.w3\.org/2001/XMLSchema#\w+>$'))
-
-    # string with idiom
-    expressions.append(re.compile(r'^"((?:[^"\\]|\\.)*)"@(.+)$'))
-
-    # point
-    expressions.append(re.compile(r'^"((?:[^"\\]|\\.)*)"\^\^<http://www\.opengis\.net/ont/geosparql#wktLiteral>$'))
-
-    # anon
-    expressions.append(re.compile(r'^_:\w+$'))
-
-    # math
-    expressions.append(re.compile(r'^"((?:[^"\\]|\\.)*)"\^\^<http://www\.w3\.org/1998/Math/MathML>$'))
-
-    for expression in expressions:
-        match_iri = expression.match(iri)
-        if match_iri is not None:
-            return match_iri.groups()[0]
-
-
-    # other url
-    other_expression = re.compile(r"^<(.+)>$")
-    match_iri = other_expression.match(iri)
-    if match_iri is not None:
-        return f'"{match_iri.groups()[0]}"'
-    else:
-        raise Exception(f'unhandled iri: {iri}')
+        return f'SELECT DISTINCT ?x WHERE {{ {query} }}'
+    return f'SELECT DISTINCT ?x WHERE {{ {query} }} LIMIT {LIMIT}'
 
 
 # Does not return, it writes the query in MDB_QUERY_FILE
 def parse_to_millenniumdb(query):
-    # query string will look like:
-    # ?v1 <http://www.wikidata.org/prop/direct/P18> ?v0 . ?v1 <http://www.wikidata.org/prop/direct/P31> <http://www.wikidata.org/entity/Q5> .
+    query_parts   = query.strip().split(' ')
+    from_string   = query_parts[0]
+    property_path = " ".join(query_parts[1:len(query_parts) - 1])
+    end_string    = query_parts[len(query_parts) - 1]
 
-    # Remove the ' .' at the end of the string
-    query = query.strip()[:-2]
+    # Parse subject
+    if '?x' in from_string:
+        from_string = '(?x)=['
+    else:
+        from_string = '(' + from_string.split('/')[-1].replace('>', '') + ')=['
 
-    # Split into triples:
-    triples = query.split(' . ')
+    # Parse object
+    if '?x' in end_string:
+        end_string  = ']=>(?x)'
+    else:
+        end_string  = ']=>(' + end_string.split('/')[-1].replace('>', '') + ')'
 
-    mdb_basic_patterns = []
-    variables = set()
-    for triple in triples:
-        s, p, o = triple.split(' ')
+    # Parse property path
+    pattern = r"\<[a-zA-Z0-9\/\.\:\#]*\>"
+    path_edges = re.findall(pattern, property_path)
+    clean_property_path = property_path
 
-        if s[0] == '?':
-            variables.add(s)
-        else:
-            s = IRI_to_mdb(s)
+    for path in path_edges:
+        clean_path          = path.split('/')[-1].replace('>', '')
+        clean_property_path = re.sub(path, clean_path, clean_property_path, flags=re.MULTILINE)
 
-        if p[0] == '?':
-            variables.add(p)
-        else:
-            p = IRI_to_mdb(p)
-
-        if o[0] == '?':
-            variables.add(o)
-        else:
-            o = IRI_to_mdb(o)
-
-        mdb_basic_patterns.append(f'({s})-[{p}]->({o})')
-
-    match_pattern = ','.join(mdb_basic_patterns)
-    select_variables = ','.join(variables)
-    with open(MDB_QUERY_FILE, 'w') as query_file:
-        query_file.write(f'SELECT DISTINCT { select_variables } MATCH {match_pattern}')
+    with open(MDB_QUERY_FILE, 'w') as file:
+        file.write(f'SELECT DISTINCT ?x MATCH {from_string}{clean_property_path}{end_string}')
         if LIMIT:
-            query_file.write(f' LIMIT {LIMIT}')
-
+            file.write(f' LIMIT {LIMIT}')
 
 
 def start_server():
