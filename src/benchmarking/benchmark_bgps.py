@@ -167,12 +167,12 @@ def parse_to_millenniumdb(query):
         else:
             o = IRI_to_mdb(o)
 
-        mdb_basic_patterns.append(f'({s})-[{p}]->({o})')
+        mdb_basic_patterns.append(f'({s})-[:{p}]->({o})')
 
     match_pattern = ','.join(mdb_basic_patterns)
-    select_variables = ','.join(variables)
+    return_variables = ','.join(variables)
     with open(MDB_QUERY_FILE, 'w') as query_file:
-        query_file.write(f'SELECT DISTINCT { select_variables } MATCH {match_pattern}')
+        query_file.write(f'{MATCH {match_pattern} RETURN DISTINCT {return_variables}')
         if LIMIT:
             query_file.write(f' LIMIT {LIMIT}')
 
