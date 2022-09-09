@@ -8,21 +8,27 @@ import re
 import sys
 
 # Usage:
-# python benchmark_bgps.py <ENGINE> <QUERIES_FILE_ABSOLUTE_PATH> <LIMIT>
+# python benchmark_bgps.py <ENGINE> <QUERIES_FILE_ABSOLUTE_PATH> <LIMIT> <SUFFIX_NAME>
 # LIMIT = 0 will not add a limit
+
+if len(sys.argv) < 5:
+    print("Remember to edit the parameters in this script before executing")
+    print("usage:\npython benchmark_bgps.py <ENGINE> <QUERIES_FILE_ABSOLUTE_PATH> <LIMIT> <SUFFIX_NAME>")
+    print("example:\npython src/benchmarking/benchmark_bgps.py MILLENNIUM $(pwd)/queries/sparql_single_pattern.txt 1000 single")
+    sys.exit()
 
 # Db engine that will execute queries
 ENGINE       = sys.argv[1]
 QUERIES_FILE = sys.argv[2]
 LIMIT        = sys.argv[3]
+SUFFIX_NAME  = sys.argv[4]
 
 ############################ EDIT THIS PARAMETERS #############################
 TIMEOUT = 600 # Max time per query in seconds
 
-BENCHMARK_ROOT = '/data2/benchmark'
+BENCHMARK_ROOT = '/data2/benchmark/'
 
 # MILLENNIUM DB options
-MDB_QUERY_FILE = f'{BENCHMARK_ROOT}/mdb_query_file'  # temp file to write the query
 MDB_WIKIDATA_PATH = f'{BENCHMARK_ROOT}/MillenniumDB/tests/dbs/wikidata'
 MDB_BUFFER_SIZE = 8388608 # Buffer used by MillenniumDB 8388608 == 32GB
                           # using 32GB instead of 64GB because
@@ -57,22 +63,29 @@ SERVER_CMD = {
 PORT = ENGINES_PORTS[ENGINE]
 
 # Path to needed output and input files
-MDB_RESULTS_FILE = f'{BENCHMARK_ROOT}/temp.txt'
-RESUME_FILE      = f'{BENCHMARK_ROOT}/results/bgps_{ENGINE}_limit_{LIMIT}.csv'
-ERROR_FILE       = f'{BENCHMARK_ROOT}/results/errors/bgps_{ENGINE}_limit_{LIMIT}.log'
+MDB_RESULTS_FILE = f'{BENCHMARK_ROOT}/out/.mdb_temp'
+RESUME_FILE      = f'{BENCHMARK_ROOT}/out/bgps_{ENGINE}_limit_{LIMIT}_{SUFFIX_NAME}.csv'
+ERROR_FILE       = f'{BENCHMARK_ROOT}/out/errors/bgps_{ENGINE}_limit_{LIMIT}_{SUFFIX_NAME}.log'
 
-SERVER_LOG_FILE  = f'{BENCHMARK_ROOT}/scripts/log/bgps_{ENGINE}_limit_{LIMIT}.log'
+SERVER_LOG_FILE  = f'{BENCHMARK_ROOT}/out/log/bgps_{ENGINE}_limit_{LIMIT}_{SUFFIX_NAME}.log'
 
 VIRTUOSO_LOCK_FILE = f'{BENCHMARK_ROOT}/virtuoso/wikidata/virtuoso.lck'
+######################## END OF EDITABLE PARAMETERS ###########################
+MDB_QUERY_FILE = f'{BENCHMARK_ROOT}/mdb_query_file'  # temp file to write the query
 
-###############################################################################
+# create output folders if they doesn't exist
+if not os.path.exists(f'{BENCHMARK_ROOT}/out/log/'):
+    os.makedirs(f'{BENCHMARK_ROOT}/out/log/')
+
+if not os.path.exists(f'{BENCHMARK_ROOT}/out/errors/'):
+    os.makedirs(f'{BENCHMARK_ROOT}/out/errors/')
 
 server_log = open(SERVER_LOG_FILE, 'w')
 server_process = None
 
 # Check if output file already exists
 if os.path.exists(RESUME_FILE):
-    print(f'File {RESUME_FILE} already exists.')
+    print(f'File {RESUME_FILE} already exists. Remove it or choose another prefix.')
     sys.exit()
 
 # ================== Auxiliars ===============================
@@ -172,7 +185,7 @@ def parse_to_millenniumdb(query):
     match_pattern = ','.join(mdb_basic_patterns)
     return_variables = ','.join(variables)
     with open(MDB_QUERY_FILE, 'w') as query_file:
-        query_file.write(f'{MATCH {match_pattern} RETURN DISTINCT {return_variables}')
+        query_file.write(f'MATCH {match_pattern} RETURN DISTINCT {return_variables}')
         if LIMIT:
             query_file.write(f' LIMIT {LIMIT}')
 
@@ -305,7 +318,7 @@ with open(ERROR_FILE, 'w') as file:
     file.write('') # to replaces the old error file
 
 if lsofany():
-    raise Exception("other server already running")
+    raise Exception("Another server is already running. You shoudl kill it manually.")
 
 start_server()
 execute_queries()
