@@ -8,34 +8,42 @@ import re
 import sys
 
 # Usage:
-# python benchmark_property_paths.py <ENGINE> <QUERIES_FILE_ABSOLUTE_PATH> <LIMIT>
+# python benchmark_property_paths.py <ENGINE> <QUERIES_FILE_ABSOLUTE_PATH> <LIMIT> <SUFFIX_NAME>
 # LIMIT = 0 will not add a limit
+
+if len(sys.argv) < 5:
+    print("Remember to edit the parameters in this script before executing")
+    print("usage:\npython benchmark_property_paths.py <ENGINE> <QUERIES_FILE_ABSOLUTE_PATH> <LIMIT> <SUFFIX_NAME>")
+    print("example:\npython src/benchmarking/benchmark_property_paths.py MILLENNIUM $(pwd)/queries/sparql_property_paths.txt 1000 v1")
+    sys.exit()
 
 # Db engine that will execute queries
 ENGINE       = sys.argv[1]
 QUERIES_FILE = sys.argv[2]
 LIMIT        = sys.argv[3]
+SUFFIX_NAME  = sys.argv[4]
 
 ############################ EDIT THIS PARAMETERS #############################
-TIMEOUT = 60 # Max time per query in seconds
+TIMEOUT = 600 # Max time per query in seconds
+
+BENCHMARK_ROOT = '/data2/benchmark/'
 
 # MILLENNIUM DB options
-MDB_QUERY_FILE = '/data2/benchmark/mdb_query_file'  # File to write the query
-MDB_WIKIDATA_PATH = '/data2/benchmark/MillenniumDB/tests/dbs/wikidata'
+MDB_WIKIDATA_PATH =  f'{BENCHMARK_ROOT}/MillenniumDB/tests/dbs/wikidata'
 MDB_BUFFER_SIZE = 8388608 # Buffer used by MillenniumDB 8388608 == 32GB
                           # using 32GB instead of 64GB because
                           # this is only for the buffer manager and MillenniumDB
                           # needs more RAM for other things (e.g. ObjectFile)
 
 # Prefer use absolute paths to avoid problems with current directory
-ENGINES_PATHS = {'MILLENNIUM': '/data2/benchmark/MillenniumDB',
-                 'JENA': '/data2/benchmark/jena',
-                 'BLAZEGRAPH': '/data2/benchmark/blazegraph/service',
-                 'VIRTUOSO': '/data2/benchmark/virtuoso'}
+ENGINES_PATHS = {'MILLENNIUM': f'{BENCHMARK_ROOT}/MillenniumDB',
+                 'JENA':       f'{BENCHMARK_ROOT}/jena',
+                 'BLAZEGRAPH': f'{BENCHMARK_ROOT}/blazegraph/service',
+                 'VIRTUOSO':   f'{BENCHMARK_ROOT}/virtuoso'}
 
 ENGINES_PORTS = {'MILLENNIUM': 8080,
-                 'JENA': 3030,
-                 'VIRTUOSO': 1111,
+                 'JENA':       3030,
+                 'VIRTUOSO':   1111,
                  'BLAZEGRAPH': 9999}
 
 ENDPOINTS = {'BLAZEGRAPH': 'http://localhost:9999/bigdata/namespace/wdq/sparql',
@@ -51,21 +59,29 @@ SERVER_CMD = {
 PORT = ENGINES_PORTS[ENGINE]
 
 # Path to needed output and input files
-MDB_RESULTS_FILE = '/data2/benchmark/temp.txt'
-RESUME_FILE      = f'/data2/benchmark/results/property_paths_{ENGINE}_limit_{LIMIT}.csv'
-ERROR_FILE       = f'/data2/benchmark/results/errors/property_paths_{ENGINE}_limit_{LIMIT}.log'
+MDB_RESULTS_FILE = f'{BENCHMARK_ROOT}/out/.mdb_temp'
+RESUME_FILE      = f'{BENCHMARK_ROOT}/out/paths_{ENGINE}_limit_{LIMIT}_{SUFFIX_NAME}.csv'
+ERROR_FILE       = f'{BENCHMARK_ROOT}/out/errors/paths_{ENGINE}_limit_{LIMIT}_{SUFFIX_NAME}.log'
 
-SERVER_LOG_FILE = f'/data2/benchmark/scripts/log/property_paths_{ENGINE}_limit_{LIMIT}.log'
+SERVER_LOG_FILE  = f'{BENCHMARK_ROOT}/out/log/paths_{ENGINE}_limit_{LIMIT}_{SUFFIX_NAME}.log'
 
-VIRTUOSO_LOCK_FILE = '/data2/benchmark/virtuoso/wikidata/virtuoso.lck'
-###############################################################################
+VIRTUOSO_LOCK_FILE = f'{BENCHMARK_ROOT}/virtuoso/wikidata/virtuoso.lck'
+######################## END OF EDITABLE PARAMETERS ###########################
+MDB_QUERY_FILE = '/data2/benchmark/mdb_query_file'  # File to write the query
+
+# create output folders if they doesn't exist
+if not os.path.exists(f'{BENCHMARK_ROOT}/out/log/'):
+    os.makedirs(f'{BENCHMARK_ROOT}/out/log/')
+
+if not os.path.exists(f'{BENCHMARK_ROOT}/out/errors/'):
+    os.makedirs(f'{BENCHMARK_ROOT}/out/errors/')
 
 server_log = open(SERVER_LOG_FILE, 'w')
 server_process = None
 
 # Check if output file already exists
 if os.path.exists(RESUME_FILE):
-    print(f'File {RESUME_FILE} already exists.')
+    print(f'File {RESUME_FILE} already exists. Remove it or choose another prefix.')
     sys.exit()
 
 # ================== Auxiliars ===============================
@@ -112,11 +128,11 @@ def parse_to_millenniumdb(query):
     clean_property_path = property_path
 
     for path in path_edges:
-        clean_path          = path.split('/')[-1].replace('>', '')
+        clean_path          = ':' + path.split('/')[-1].replace('>', '')
         clean_property_path = re.sub(path, clean_path, clean_property_path, flags=re.MULTILINE)
 
     with open(MDB_QUERY_FILE, 'w') as file:
-        file.write(f'SELECT DISTINCT ?x MATCH {from_string}{clean_property_path}{end_string}')
+        file.write(f'MATCH {from_string}{clean_property_path}{end_string} RETURN DISTINCT ?x')
         if LIMIT:
             file.write(f' LIMIT {LIMIT}')
 
